@@ -13,7 +13,7 @@ num_traits = 1; % we want to generalize to more dimensions
 f_mode = 3;% Which of the performance functions is to be used
 fit_mode = 'cubic'; % Whether to use interpolation, cubic, or quintic fit
 
-genetic_drift = 0.1*10^(-3);% Amount that the traits can change with reproduction
+genetic_drift = 5*10^(-3);% Amount that the traits can change with reproduction
 num_epochs = 50;% Number of evolutionary steps in each trial
 
 num_experiments = 1000;% Number of total trials
