@@ -1,5 +1,5 @@
 %% Clear figures
-for j = 1:6
+for j = 1:7
     figure(j)
     clf
 end
@@ -94,6 +94,17 @@ drawnow
 figure(5)
 clf
 hold on
+scatter(cleaned_data(:,1),abs(cleaned_data(:,3)),8,[0.6350 0.0780 0.1840])
+grid on
+title('Gradient norm against final $\mu$ of the data cluster','FontSize',16,'Interpreter','latex')
+xlabel('Final $\mu$','Interpreter','latex')
+ylabel('Gradient norm')
+axis square
+drawnow
+
+figure(6)
+clf
+hold on
 scatter(cleaned_data(:,1),cleaned_data(:,2),8,[0.6350 0.0780 0.1840])
 grid on
 title('Hessian-xx value against final $\mu$ of the data cluster','FontSize',16,'Interpreter','latex')
@@ -102,7 +113,7 @@ ylabel('Hessian value (not norm)')
 axis square
 drawnow
 
-figure(6)
+figure(7)
 clf
 hold on
 scatter(cleaned_data(:,1),abs(cleaned_data(:,2)),8,[0.6350 0.0780 0.1840])
