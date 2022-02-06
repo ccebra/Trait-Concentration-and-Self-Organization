@@ -1,8 +1,8 @@
 %% Parameters
 num_moran = 24;% number of entrants in Moran model
-num_interpolation = 100;% number of Moran games to play for grid interpolation
+num_interpolation = 50000;% number of Moran games to play for grid interpolation
 grid_width = 20;% grid width for the Moran interpolation
-start_row = 5;% if computer crashes part of the way through, can start at a later row
+start_row = 6;% if computer crashes part of the way through, can start at a later row
 current_cell = 0;% tracks current cell
 
 payout = cell(2,2);

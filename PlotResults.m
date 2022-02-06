@@ -41,6 +41,22 @@ hessian_xy_boundary = hessian_xy_norm(hessian_xy_norm(:,2)>=1-1.96*results.param
 
 
 %% Plot intransitivity on interior and boundary
+xcoords = (1:50);
+offset1xcoords = xcoords + 0.25;
+
+figure(22)
+clf
+hold on
+boxplot(column_three(:,[1:50]),'Colors','b','PlotStyle','compact','OutlierSize',1,'positions',xcoords);
+yline(0);
+%boxplot(0.1,column_four(:,[1:50]),'Colors','g','PlotStyle','compact');
+%Grid on, set(gca,'yscale','log'),increase font size of axes
+xlabel('Evolutionary Steps', 'FontSize', 36, 'interpreter', 'latex')
+ylabel('Proportion Intransitivity', 'FontSize', 36, 'interpreter', 'latex')
+ylim([-0.1,1.1])
+set(gca, 'FontSize',28)
+title('Intransitivity Step by Step (zero linear amplitude)', 'FontSize', 28, 'interpreter', 'latex')
+grid on
 
 figure(2)
 clf
@@ -61,6 +77,15 @@ title('Intransitivity Step by Step (Boundary)', 'FontSize', 18, 'interpreter', '
 grid on
 
 %% Plot covariance on interior and boundary
+figure(23)
+clf
+boxplot(column_four(:,[1:50]));
+xlabel('Evolutionary Steps', 'FontSize', 18, 'interpreter', 'latex')
+ylabel('Covariance', 'FontSize', 18, 'interpreter', 'latex')
+ylim([-0.1,1.1])
+title('Covariance Step by Step', 'FontSize', 18, 'interpreter', 'latex')
+grid on
+
 figure(4)
 clf
 boxplot(column_four_interior);
@@ -80,6 +105,15 @@ title('Covariance Step by Step (Boundary)', 'FontSize', 18, 'interpreter', 'late
 grid on
 
 %% Plot number of clusters on interior and boundary
+figure(24)
+clf
+boxplot(column_five(:,[1:50]));
+xlabel('Evolutionary Steps', 'FontSize', 18, 'interpreter', 'latex')
+ylabel('Number of Clusters', 'FontSize', 18, 'interpreter', 'latex')
+title('Clusters Step by Step', 'FontSize', 18, 'interpreter', 'latex')
+axis tight
+grid on
+
 figure(6)
 clf
 boxplot(column_five_interior);
@@ -99,6 +133,26 @@ axis tight
 grid on
 
 %% display convergence rate graph (boundary)
+convergence_test_stds = [results.convergence_test.boundary.stds,results.convergence_test.interior.stds];
+convergence_test_rhos = [results.convergence_test.boundary.rhos,results.convergence_test.interior.rhos];
+convergence_test_rho_means = [results.convergence_test.boundary.rho_mean,results.convergence_test.interior.rho_mean];
+figure(24)
+clf
+hold on
+plot(convergence_test_stds,abs(0.5-convergence_test_rhos),'Linewidth',0.5)
+plot(convergence_test_stds,abs(0.5-convergence_test_rho_means),'k-','Linewidth',2)
+set(gca, 'FontSize',28)
+xlabel('Radius of Selected Competitors', 'FontSize', 36, 'interpreter', 'latex')
+ylabel('Correlation Coefficient', 'FontSize', 36, 'interpreter', 'latex')
+title('Rate of Convergence Test','FontSize',36, 'interpreter', 'latex')
+l = legend('data','fitline');
+set(l,'FontSize',32,'interpreter','latex','Location','best')
+grid on
+set(gca,'yscale','log')
+set(gca,'xscale','log')
+axis square
+drawnow
+
 figure(8)
 clf
 hold on
@@ -201,16 +255,18 @@ grid on
 %% display rhos (experimental versus predicted)
 figure(11)
 clf
+colormap turbo
 hold on
 scatter3(0.5 - results.analysis.rho,0.5 - results.analysis.rho_empirical,sqrt(results.covariance.final/results.parameters.num_traits),...
-    15,'fill')
+    15,sqrt(results.covariance.final),'fill')
+colorbar
 plot3([0.9*min(0.5-results.analysis.rho_empirical),1],[0.9*min(0.5-results.analysis.rho_empirical),1],[10^-2,10^(-2)],'k-','Linewidth',1)
 grid on
-set(gca,'xscale','log','yscale','log','zscale','log')
-title('$\rho$ Predicted vs. Actual','FontSize',16,'interpreter','latex')
-xlabel('Predicted $0.5 - \rho$','FontSize',16,'interpreter','latex')
-ylabel('Empirical $0.5 - \rho$','FontSize',16,'interpreter','latex')
-zlabel('$\sqrt{\frac{1}{T}E[||X - \bar{x}||^2]}$','FontSize',16,'interpreter','latex')
+set(gca,'xscale','log','yscale','log','zscale','log','ColorScale','log')
+title('$\rho$ Predicted vs. Actual','FontSize',32,'interpreter','latex')
+xlabel('Predicted $0.5 - \rho$','FontSize',32,'interpreter','latex')
+ylabel('Empirical $0.5 - \rho$','FontSize',32,'interpreter','latex')
+zlabel('$\sqrt{\frac{1}{T}E[||X - \bar{x}||^2]}$','FontSize',32,'interpreter','latex')
 axis square
 drawnow
 

@@ -32,10 +32,10 @@ final_covariance = squeeze(results.stepbysteparray(results.parameters.num_epochs
 figure(2)
 clf
 boxplot(column_three);%Grid on, set(gca,'yscale','log'),increase font size of axes
-xlabel('Evolutionary Steps', 'FontSize', 18, 'interpreter', 'latex')
-ylabel('Proportion Intransitivity', 'FontSize', 18, 'interpreter', 'latex')
+xlabel('Evolutionary Steps', 'FontSize', 36, 'interpreter', 'latex')
+ylabel('Proportion Intransitivity', 'FontSize', 36, 'interpreter', 'latex')
 axis tight
-title('Intransitivity Step by Step', 'FontSize', 18, 'interpreter', 'latex')
+title('Intransitivity Step by Step (Chicken)', 'FontSize', 36, 'interpreter', 'latex')
 grid on
 
 %% Plot covariance on interior and boundary

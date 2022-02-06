@@ -16,7 +16,7 @@ fit_mode = 'cubic'; % Whether to use interpolation, cubic, or quintic fit
 genetic_drift = 5*10^(-3);% Amount that the traits can change with reproduction
 num_epochs = 50;% Number of evolutionary steps in each trial
 
-num_experiments = 1000;% Number of total trials
+num_experiments = 10;% Number of total trials
 games_per_competitor = 100;% Number of games each competitor plays to determine fitness
 
 
@@ -36,7 +36,7 @@ results.parameters.num_competitors = num_competitors;
 results.parameters.num_traits = num_traits;
 
 results.parameters.f_mode = f_mode;
-result.parameters.fit_mode = fit_mode;
+results.parameters.fit_mode = fit_mode;
 
 results.parameters.genetic_drift = genetic_drift;
 results.parameters.num_epochs = num_epochs;
@@ -76,6 +76,7 @@ end
 %% preallocate (generate data array that tracks data over multiple experiments)
 %experiment_array = zeros(num_experiments,12); % will store experimental results at end of evolution
 step_by_step = NaN(num_epochs,6,num_experiments); % will store experimental results over each step
+competitors_step_by_step = NaN(num_competitors,num_epochs,num_experiments); %will save competitor information by step
 mu_step_by_step = NaN(num_epochs,round(num_competitors/10),num_experiments);
 sigma_step_by_step = NaN(num_epochs,round(num_competitors/10),num_experiments);
 
@@ -121,6 +122,7 @@ parfor experiment = 1:num_experiments
     %% generate data array that tracks transitivity/intransitivity over time (epochs)
     epoch_array = zeros(num_epochs,6);
     mu_array = zeros(num_epochs,round(num_competitors/10));
+    traits_array = zeros(num_competitors,num_epochs)
     sigma_array = zeros(num_epochs,round(num_competitors/10));
     cluster_centroid = zeros(1,num_traits);
     evolution_over = 0;%Dummy variable to check if we can stop the evolution process
@@ -131,6 +133,7 @@ parfor experiment = 1:num_experiments
     %% loop over epochs
     while epoch < final_epoch && evolution_over == 0
         
+        traits_array(:,epoch) = competitor_traits;
         %% Calculate performance using the performance function
         X = competitor_traits(edge_to_endpoints(:,1),:);
         Y = competitor_traits(edge_to_endpoints(:,2),:);
@@ -300,6 +303,7 @@ parfor experiment = 1:num_experiments
     step_by_step(:,:,experiment) = epoch_array;
     mu_step_by_step(:,:,experiment) = mu_array;
     sigma_step_by_step(:,:,experiment) = sigma_array;
+    competitors_step_by_step(:,:,experiment) = traits_array;
     
     %% Flag if final centroid is on the boundary
     final_gen_traits = max(parent_traits,[],2);
@@ -403,6 +407,7 @@ grad_norm = vecnorm(grad);
 grad_norm = grad_norm';
 
 results.stepbysteparray = step_by_step;
+results.competitorarray = competitors_step_by_step;
 %results.intransitivity.initial = experiment_array(:,1);
 %results.covariance.initial = experiment_array(:,2);
 %results.clusters.initial = experiment_array(:,3);
