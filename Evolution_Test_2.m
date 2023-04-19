@@ -12,17 +12,17 @@ num_competitors = 250;% number of total competitors
 num_traits = 8; % we want to generalize to more dimensions
 num_frequencies = 2;% In performance function, number of trigonometric frequencies
 trig_amplitude = 1;% Amplitude of trigonometric components in performance function
-linear_amplitude = 1;% Amplitude of linear components in performance function
+linear_amplitude = 0;% Amplitude of linear components in performance function
 f_mode = 3;% Which of the performance functions is to be used
 
-genetic_drift = 0.5*10^(-2);% Amount that the traits can change with reproduction
+genetic_drift = 0.5*10^(-3);% Amount that the traits can change with reproduction
 num_epochs = 50;% Number of evolutionary steps in each trial
 
-num_experiments = 100;% Number of total trials
+num_experiments = 1000;% Number of total trials
 games_per_competitor = 100;% Number of games each competitor plays to determine fitness
 
-num_conv_rate_boundary = 10;%Number of times we run convergence rate analysis for boundary cases
-num_conv_rate_interior = 10;%Number of times we run convergence rate analysis for interior cases
+num_conv_rate_boundary = 0;%Number of times we run convergence rate analysis for boundary cases
+num_conv_rate_interior = 0;%Number of times we run convergence rate analysis for interior cases
 % num_conv_rate = 10^6;% Number of competitors in convergence rate analysis
 std_bounds = [-2.5,-1]; % bounds on range of stds to test for convergence (log base 10)
 num_stds = 40;% Number of standard deviations that we run convergence rate analysis over
@@ -95,12 +95,12 @@ end
 
 
 %% preallocate (generate data array that tracks data over multiple experiments)
-experiment_array = zeros(num_experiments,12); % will store experimental results at end of evolution
-step_by_step = NaN(num_epochs,6,num_experiments); % will store experimental results over each step
+%experiment_array = zeros(num_experiments,12); % will store experimental results at end of evolution
+step_by_step = NaN(num_epochs,7,num_experiments); % will store experimental results over each step
 
 grad = NaN(num_traits,num_experiments); % stores gradient in performance at end of evolution
-Hessian.xx = cell(num_experiments,1); % stores on diagonal block of the Hessian at end of evolution
-Hessian.xy = cell(num_experiments,1); % stores off diagonal block of the Hessian at end of evolution
+Hessian_xx = NaN(num_traits,num_traits,num_experiments); % stores on diagonal block of the Hessian at end of evolution
+Hessian_xy = NaN(num_traits,num_traits,num_experiments); % stores off diagonal block of the Hessian at end of evolution
 
 epsilon_prediction = NaN(num_experiments,1); % stores predicted value of epsilon at end of each experiment
 rhos.prediction = NaN(num_experiments,1); % stores predicted value of rho (correlation coefficient) at end of each experiment
@@ -117,14 +117,14 @@ interior_correlation_coefficient = NaN(num_experiments,num_stds); % stores empir
 
 
 %% loop over experiments
-for experiment = 1:num_experiments
+parfor experiment = 1:num_experiments
     
     %% randomly generate traits
     %[x,y,z] = rand_pick_sphere(num_competitors,0,1); %Call rand_pick_sphere function
     competitor_traits = 2*(rand(num_competitors,num_traits)-1/2);
     
     %% generate data array that tracks transitivity/intransitivity over time (epochs)
-    epoch_array = zeros(num_epochs,6);
+    epoch_array = zeros(num_epochs,7);
     cluster_centroid = zeros(1,num_traits);
     evolution_over = 0;%Dummy variable to check if we can stop the evolution process
     on_boundary = 0;%Dummy variable to state if the final location is on the boundary
@@ -151,27 +151,27 @@ for experiment = 1:num_experiments
         Z = rand([n_events,1]); % this is all the random numbers we need
         p_win = NaN([n_events,1]);
         
-        k = 0;
-        for i = 1:num_competitors
+        num_games = 0;
+        for first_competitor = 1:num_competitors
             for events = 1:games_per_competitor
                 %% count games
-                k = k+1;
+                num_games = num_games+1;
                 
                 %% pick opponent
                 stop = 0;
                 while stop == 0
-                    j = randperm(num_competitors,1);
-                    if j ~= i
+                    second_competitor = randperm(num_competitors,1);
+                    if second_competitor ~= first_competitor
                         stop = 1;
                     end
                 end
                 
                 %% store competitors
-                competitors(k,1) = i;
-                competitors(k,2) = j;
+                competitors(num_games,1) = first_competitor;
+                competitors(num_games,2) = second_competitor;
                 
                 %% get win probability
-                p_win(k) = (1 + exp(-competition(i,j)))^(-1); % p_win = logistic(performance)
+                p_win(num_games) = (1 + exp(-competition(first_competitor,second_competitor)))^(-1); % p_win = logistic(performance)
                 
             end
             
@@ -196,6 +196,14 @@ for experiment = 1:num_experiments
         Transitivity = norm(F_t,'fro')/sqrt(2);
         Intransitivity = norm(F_c,'fro')/sqrt(2);
         
+        %% Compute Kendall intransitivity
+        ratings_1 = competition > 0;
+        ratings_2 = competition == 0;
+        kendall_ratings = ratings_1 + 1/2*ratings_2 - 1/2 * eye(num_competitors);
+        row_totals = sum(kendall_ratings,2);
+        triads = 1/12*num_competitors*(num_competitors - 1)*(2*num_competitors - 1) - 1/2 * sumsqr(row_totals);
+        degree_linearity = 1 - 24*triads/(num_competitors^3-4*num_competitors);
+        
         
         %% covariance calculations
         cov_at_step = trace(cov(competitor_traits));
@@ -208,9 +216,9 @@ for experiment = 1:num_experiments
         AIC = zeros(1,round(num_competitors/10));
         GMModels = cell(1,round(num_competitors/10));
         options = statset('MaxIter',500);
-        for k = 1:(round(num_competitors/10))%Getting an ill-conditioned covariance error
-            GMModels{k} = fitgmdist(competitor_traits,k,'Options',options,'CovarianceType','full', 'RegularizationValue',genetic_drift);
-            AIC(k)= GMModels{k}.AIC;
+        for num_clusters = 1:(round(num_competitors/10))%Getting an ill-conditioned covariance error
+            GMModels{num_clusters} = fitgmdist(competitor_traits,num_clusters,'Options',options,'CovarianceType','full', 'RegularizationValue',genetic_drift);
+            AIC(num_clusters)= GMModels{num_clusters}.AIC;
         end
         
         [minAIC,numComponents] = min(AIC);
@@ -270,7 +278,8 @@ for experiment = 1:num_experiments
             epoch_array(epoch_fill,3) = Intransitivity/sqrt(Transitivity^2 + Intransitivity^2);
             epoch_array(epoch_fill,4) = cov_at_step;
             epoch_array(epoch_fill,5) = n_classes;
-            epoch_array(epoch_fill,6) = 1;
+            epoch_array(epoch_fill,6) = triads;
+            epoch_array(epoch_fill,7) = degree_linearity;
         end
         epoch = epoch + 1;
         
@@ -293,8 +302,8 @@ for experiment = 1:num_experiments
     end
     
     grad(:,experiment) = g;
-    Hessian.xx{experiment} = H.xx;
-    Hessian.xy{experiment} = H.xy;
+    Hessian_xx(:,:,experiment) = H.xx;
+    Hessian_xy(:,:,experiment) = H.xy;
     hessian_xx_norm = norm(H.xx,'fro');
     hessian_xy_norm = norm(H.xy,'fro');
     
@@ -303,16 +312,16 @@ for experiment = 1:num_experiments
     Sigma = cov(competitor_traits);
     final_std(experiment) = sqrt(trace(Sigma)/num_traits);
     epsilon_prediction(experiment) = trace(-H.xy*Sigma*H.xy*Sigma)/(2*g'*Sigma*g + trace(H.xx*Sigma*H.xx*Sigma));
-    rhos.prediction(experiment) = 1/(2*(1 + epsilon_prediction(experiment)));
+    rhos_prediction(experiment) = 1/(2*(1 + epsilon_prediction(experiment)));
     
     E = num_competitors*(num_competitors - 1)/2;
     L = E - (num_competitors - 1);
-    rel_intransitivity_prediction(experiment) = sqrt((1 - 2*rhos.prediction(experiment))*(L/E));
+    rel_intransitivity_prediction(experiment) = sqrt((1 - 2*rhos_prediction(experiment))*(L/E));
     
     
     
     %% empirical correlation
-    rhos.empirical(experiment) = (1 - (E/L)*(Intransitivity^2/(Transitivity^2 + Intransitivity^2)))/2;
+    rhos_empirical(experiment) = (1 - (E/L)*(Intransitivity^2/(Transitivity^2 + Intransitivity^2)))/2;
     
        %% predict rho as a function of standard deviation 
     epsilon = @(std_traits) norm(H.xy,'fro')^2./(2*(norm(g)./std_traits).^2 + norm(H.xx,'fro')^2);
@@ -320,50 +329,50 @@ for experiment = 1:num_experiments
     
     
     %% Calculate convergence rate given deviations of competitors from final cluster centroid (boundary)
-    if  num_conv_rate_boundary > 0 && on_boundary == 1 
-        boundary_std_convergence_list = 10.^(linspace(std_bounds(2),std_bounds(1),num_stds));
-        for repopulate_step = 1:length(boundary_std_convergence_list)
-            %% compute theoretical rho and epsilon
-            epsilons(experiment,repopulate_step) = epsilon(boundary_std_convergence_list(repopulate_step));
-            rhos.convergence.boundary.analytic(experiment,repopulate_step) = rho(boundary_std_convergence_list(repopulate_step)); % compare to rhos.mean from below
-            
-            if num_conv_rate_boundary > 0 %run 10 total convergence rate tests empirically
-                %% estimate rho empirically
-                [rhos.convergence.boundary.mean(experiment,repopulate_step),rhos.convergence.boundary.std(experiment,repopulate_step)] = estimate_rho_Gauss(f,cluster_centroid,boundary_std_convergence_list(repopulate_step)^2,tol,epoch_bounds,network_sample_size);
-                boundary_correlation_coefficient(experiment,repopulate_step) = rhos.convergence.boundary.mean(experiment,repopulate_step);
-            end
-            
-        end
-        num_conv_rate_boundary = num_conv_rate_boundary-1;
-    end
-    
-    %% Calculate convergence rate given deviations of competitors from final cluster centroid (interior)
-    if num_conv_rate_interior > 0 && on_boundary == 0 %run 10 total convergence rate tests
-        interior_std_convergence_list = 10.^(linspace(std_bounds(2),std_bounds(1),num_stds));
-        for repopulate_step = 1:length(interior_std_convergence_list)
-            %% compute theoretical rho and epsilon
-            epsilons(experiment,repopulate_step) = epsilon(interior_std_convergence_list(repopulate_step));
-            rhos.convergence.interior.analytic(experiment,repopulate_step) = rho(interior_std_convergence_list(repopulate_step)); % compare to rhos.mean from below
-            
-            %% estimate rho empirically
-            [rhos.convergence.interior.mean(experiment,repopulate_step),rhos.convergence.interior.std(experiment,repopulate_step)] = estimate_rho_Gauss(f,cluster_centroid,interior_std_convergence_list(repopulate_step)^2,tol,epoch_bounds,network_sample_size);
-            interior_correlation_coefficient(experiment,repopulate_step) = rhos.convergence.interior.mean(experiment,repopulate_step);
-        end
-        num_conv_rate_interior = num_conv_rate_interior - 1;
-    end
+%     if  num_conv_rate_boundary > 0 && on_boundary == 1 
+%         boundary_std_convergence_list = 10.^(linspace(std_bounds(2),std_bounds(1),num_stds));
+%         for repopulate_step = 1:length(boundary_std_convergence_list)
+%             %% compute theoretical rho and epsilon
+%             epsilons(experiment,repopulate_step) = epsilon(boundary_std_convergence_list(repopulate_step));
+%             rhos.convergence.boundary.analytic(experiment,repopulate_step) = rho(boundary_std_convergence_list(repopulate_step)); % compare to rhos.mean from below
+%             
+%             if num_conv_rate_boundary > 0 %run 10 total convergence rate tests empirically
+%                 %% estimate rho empirically
+%                 [rhos.convergence.boundary.mean(experiment,repopulate_step),rhos.convergence.boundary.std(experiment,repopulate_step)] = estimate_rho_Gauss(f,cluster_centroid,boundary_std_convergence_list(repopulate_step)^2,tol,epoch_bounds,network_sample_size);
+%                 boundary_correlation_coefficient(experiment,repopulate_step) = rhos.convergence.boundary.mean(experiment,repopulate_step);
+%             end
+%             
+%         end
+%         num_conv_rate_boundary = num_conv_rate_boundary-1;
+%     end
+%     
+%     %% Calculate convergence rate given deviations of competitors from final cluster centroid (interior)
+%     if num_conv_rate_interior > 0 && on_boundary == 0 %run 10 total convergence rate tests
+%         interior_std_convergence_list = 10.^(linspace(std_bounds(2),std_bounds(1),num_stds));
+%         for repopulate_step = 1:length(interior_std_convergence_list)
+%             %% compute theoretical rho and epsilon
+%             epsilons(experiment,repopulate_step) = epsilon(interior_std_convergence_list(repopulate_step));
+%             rhos.convergence.interior.analytic(experiment,repopulate_step) = rho(interior_std_convergence_list(repopulate_step)); % compare to rhos.mean from below
+%             
+%             %% estimate rho empirically
+%             [rhos.convergence.interior.mean(experiment,repopulate_step),rhos.convergence.interior.std(experiment,repopulate_step)] = estimate_rho_Gauss(f,cluster_centroid,interior_std_convergence_list(repopulate_step)^2,tol,epoch_bounds,network_sample_size);
+%             interior_correlation_coefficient(experiment,repopulate_step) = rhos.convergence.interior.mean(experiment,repopulate_step);
+%         end
+%         num_conv_rate_interior = num_conv_rate_interior - 1;
+%     end
     
     %% Add parameters from this to experiments array and structs
-    experiment_array(experiment,1) = epoch_array(1,3);
-    experiment_array(experiment,2) = epoch_array(1,4);
-    experiment_array(experiment,3) = epoch_array(2,5);
-    experiment_array(experiment,4) = epoch_array(final_epoch,3);
-    experiment_array(experiment,5) = epoch_array(final_epoch,4);
-    experiment_array(experiment,6) = epoch_array(final_epoch,5);
-    experiment_array(experiment,7) = final_epoch;
-    experiment_array(experiment,8) = max_coordinate;
-    experiment_array(experiment,9) = on_boundary;
-    experiment_array(experiment,11) = hessian_xx_norm;
-    experiment_array(experiment,12) = hessian_xy_norm;
+%     experiment_array(experiment,1) = epoch_array(1,3);
+%     experiment_array(experiment,2) = epoch_array(1,4);
+%     experiment_array(experiment,3) = epoch_array(2,5);
+%     experiment_array(experiment,4) = epoch_array(final_epoch,3);
+%     experiment_array(experiment,5) = epoch_array(final_epoch,4);
+%     experiment_array(experiment,6) = epoch_array(final_epoch,5);
+%     experiment_array(experiment,7) = final_epoch;
+%     experiment_array(experiment,8) = max_coordinate;
+%     experiment_array(experiment,9) = on_boundary;
+%     experiment_array(experiment,11) = hessian_xx_norm;
+%     experiment_array(experiment,12) = hessian_xy_norm;
     
     %% print
     fprintf('\n Trial %d of %d complete \n',experiment,num_experiments)
@@ -374,14 +383,14 @@ grad_norm = vecnorm(grad);
 grad_norm = grad_norm';
 
 results.stepbysteparray = step_by_step;
-results.intransitivity.initial = experiment_array(:,1);
-results.covariance.initial = experiment_array(:,2);
-results.clusters.initial = experiment_array(:,3);
-results.intransitivity.final = experiment_array(:,4);
-results.covariance.final = experiment_array(:,5);
-results.clusters.final = experiment_array(:,6);
-results.num.steps = experiment_array(:,7);%(Struct)
-results.maxcoordinate = experiment_array(:,8);
+% results.intransitivity.initial = experiment_array(:,1);
+% results.covariance.initial = experiment_array(:,2);
+% results.clusters.initial = experiment_array(:,3);
+% results.intransitivity.final = experiment_array(:,4);
+% results.covariance.final = experiment_array(:,5);
+% results.clusters.final = experiment_array(:,6);
+% results.num.steps = experiment_array(:,7);%(Struct)
+% results.maxcoordinate = experiment_array(:,8);
 results.norms.gradient = grad_norm;
 results.norms.xxhessian = experiment_array(:,11);
 results.norms.xyhessian = experiment_array(:,12);
@@ -389,8 +398,8 @@ results.norms.xyhessian = experiment_array(:,12);
 results.analysis.grad = grad;
 results.analysis.Hessian = Hessian;
 results.analysis.epsilon = epsilon_prediction;
-results.analysis.rho = rhos.prediction;
-results.analysis.rho_empirical = rhos.empirical;
+results.analysis.rho = rhos_prediction;
+results.analysis.rho_empirical = rhos_empirical;
 results.analysis.rel_intransitivity = rel_intransitivity_prediction; 
 results.analysis.epsilon_function = epsilon;
 
@@ -405,7 +414,7 @@ results.convergence_test.interior.rho_mean = nanmean(interior_correlation_coeffi
 results.convergence_test.interior.rho_predictions = rhos.convergence.interior.analytic;
 
 %% Save step-by-step results
-step_by_step_array = NaN(num_epochs,6);
+step_by_step_array = NaN(num_epochs,7);
 step_by_step_array = nansum(step_by_step,3);
 step_by_step_array(:,(1:5)) = step_by_step_array(:,(1:5))./step_by_step_array(:,6);
 

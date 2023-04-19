@@ -10,13 +10,13 @@ end
 num_competitors = 250;% number of total competitors
 
 num_traits = 1; % we want to generalize to more dimensions
-f_mode = 3;% Which of the performance functions is to be used
+f_mode = 2;% Which of the performance functions is to be used
 fit_mode = 'cubic'; % Whether to use interpolation, cubic, or quintic fit
 
-genetic_drift = 5*10^(-3);% Amount that the traits can change with reproduction
+genetic_drift = 1*10^(-3);% Amount that the traits can change with reproduction
 num_epochs = 50;% Number of evolutionary steps in each trial
 
-num_experiments = 10;% Number of total trials
+num_experiments = 1;% Number of total trials
 games_per_competitor = 100;% Number of games each competitor plays to determine fitness
 
 
@@ -75,7 +75,7 @@ end
 
 %% preallocate (generate data array that tracks data over multiple experiments)
 %experiment_array = zeros(num_experiments,12); % will store experimental results at end of evolution
-step_by_step = NaN(num_epochs,6,num_experiments); % will store experimental results over each step
+step_by_step = NaN(num_epochs,7,num_experiments); % will store experimental results over each step
 competitors_step_by_step = NaN(num_competitors,num_epochs,num_experiments); %will save competitor information by step
 mu_step_by_step = NaN(num_epochs,round(num_competitors/10),num_experiments);
 sigma_step_by_step = NaN(num_epochs,round(num_competitors/10),num_experiments);
@@ -102,7 +102,7 @@ interior_correlation_coefficient = NaN(num_experiments,num_stds); % stores empir
 
 
 %% loop over experiments
-parfor experiment = 1:num_experiments
+for experiment = 1:num_experiments
     
     %% randomly generate traits
     %[x,y,z] = rand_pick_sphere(num_competitors,0,1); %Call rand_pick_sphere function
@@ -120,9 +120,9 @@ parfor experiment = 1:num_experiments
 %     drawnow
     
     %% generate data array that tracks transitivity/intransitivity over time (epochs)
-    epoch_array = zeros(num_epochs,6);
+    epoch_array = zeros(num_epochs,7);
     mu_array = zeros(num_epochs,round(num_competitors/10));
-    traits_array = zeros(num_competitors,num_epochs)
+    traits_array = zeros(num_competitors,num_epochs);
     sigma_array = zeros(num_epochs,round(num_competitors/10));
     cluster_centroid = zeros(1,num_traits);
     evolution_over = 0;%Dummy variable to check if we can stop the evolution process
@@ -183,6 +183,14 @@ parfor experiment = 1:num_experiments
         win_freq = sum(reshape(Outcomes, [games_per_competitor,num_competitors])',2)/games_per_competitor;
         indices = (1:num_competitors)';
         winfreq_with_indices = [indices,win_freq];
+        
+        %% Compute Kendall intransitivity
+        ratings_1 = competition > 0;
+        ratings_2 = competition == 0;
+        kendall_ratings = ratings_1 + 1/2*ratings_2 - 1/2 * eye(num_competitors);
+        row_totals = sum(kendall_ratings,2);
+        triads = 1/12*num_competitors*(num_competitors - 1)*(2*num_competitors - 1) - 1/2 * sumsqr(row_totals);
+        degree_linearity = 1 - 24*triads/(num_competitors^3-4*num_competitors);
         
         %% performing the HHD for a complete graph ***only works for complete graphs
         ratings = (1/num_competitors)*sum(competition,2);
@@ -292,7 +300,8 @@ parfor experiment = 1:num_experiments
             epoch_array(epoch_fill,3) = Intransitivity/sqrt(Transitivity^2 + Intransitivity^2);
             epoch_array(epoch_fill,4) = cov_at_step;
             epoch_array(epoch_fill,5) = n_classes;
-            epoch_array(epoch_fill,6) = 1;
+            epoch_array(epoch_fill,6) = triads;
+            epoch_array(epoch_fill,7) = degree_linearity;
             mu_array(epoch_fill,:) = mu;
             sigma_array(epoch_fill,:) = sigma;
         end

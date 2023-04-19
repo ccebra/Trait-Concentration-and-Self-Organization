@@ -31,12 +31,22 @@ final_covariance = squeeze(results.stepbysteparray(results.parameters.num_epochs
 
 figure(2)
 clf
+hold on
 boxplot(column_three);%Grid on, set(gca,'yscale','log'),increase font size of axes
+med = median(column_three(:,[1:50]));
+xcoords = (1:50);
+pbaspect([1 1 1])
+set(gca,'FontSize',20)
+xticks([0 5 10 15 20 25 30 35 40 45 50])
+xticklabels({'0', '5', '10', '15', '20', '25', '30', '35', '40', '45', '50'})
+xtickangle(45)
+plot(xcoords, med,'b-','LineWidth',1.75)
 xlabel('Evolutionary Steps', 'FontSize', 36, 'interpreter', 'latex')
-ylabel('Proportion Intransitivity', 'FontSize', 36, 'interpreter', 'latex')
+%ylabel('Proportion Intransitivity', 'FontSize', 36, 'interpreter', 'latex')
 axis tight
-title('Intransitivity Step by Step (Chicken)', 'FontSize', 36, 'interpreter', 'latex')
+title('Chicken', 'FontSize', 36, 'interpreter', 'latex')
 grid on
+drawnow
 
 %% Plot covariance on interior and boundary
 figure(3)
