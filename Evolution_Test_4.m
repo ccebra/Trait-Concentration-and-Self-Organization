@@ -18,7 +18,7 @@ f_mode = 6;% Which of the performance functions is to be used
 genetic_drift = 0.5*10^(-2);% Amount that the traits can change with reproduction
 num_epochs = 50;% Number of evolutionary steps in each trial
 
-num_experiments = 1;% Number of total trials
+num_experiments = 2;% Number of total trials
 games_per_competitor = 100;% Number of games each competitor plays to determine fitness
 
 num_conv_rate_boundary = 10;%Number of times we run convergence rate analysis for boundary cases
@@ -127,7 +127,7 @@ interior_correlation_coefficient = NaN(num_experiments,num_stds); % stores empir
 
 
 %% loop over experiments
-for experiment = 1:num_experiments
+parfor experiment = 1:num_experiments
     
     %% randomly generate traits
     %[x,y,z] = rand_pick_sphere(num_competitors,0,1); %Call rand_pick_sphere function

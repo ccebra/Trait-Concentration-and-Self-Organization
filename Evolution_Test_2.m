@@ -18,7 +18,7 @@ f_mode = 3;% Which of the performance functions is to be used
 genetic_drift = 0.5*10^(-3);% Amount that the traits can change with reproduction
 num_epochs = 50;% Number of evolutionary steps in each trial
 
-num_experiments = 1000;% Number of total trials
+num_experiments = 10;% Number of total trials
 games_per_competitor = 100;% Number of games each competitor plays to determine fitness
 
 num_conv_rate_boundary = 0;%Number of times we run convergence rate analysis for boundary cases
@@ -391,27 +391,28 @@ results.stepbysteparray = step_by_step;
 % results.clusters.final = experiment_array(:,6);
 % results.num.steps = experiment_array(:,7);%(Struct)
 % results.maxcoordinate = experiment_array(:,8);
-results.norms.gradient = grad_norm;
-results.norms.xxhessian = experiment_array(:,11);
-results.norms.xyhessian = experiment_array(:,12);
+%results.norms.gradient = grad_norm;
+%results.norms.xxhessian = experiment_array(:,11);
+%results.norms.xyhessian = experiment_array(:,12);
 
 results.analysis.grad = grad;
-results.analysis.Hessian = Hessian;
+results.analysis.Hessian.xx = Hessian_xx;
+results.analysis.Hessian.xy = Hessian_xy;
 results.analysis.epsilon = epsilon_prediction;
 results.analysis.rho = rhos_prediction;
 results.analysis.rho_empirical = rhos_empirical;
 results.analysis.rel_intransitivity = rel_intransitivity_prediction; 
-results.analysis.epsilon_function = epsilon;
+%results.analysis.epsilon_function = epsilon;
 
 
-results.convergence_test.boundary.stds = boundary_std_convergence_list;
-results.convergence_test.boundary.rhos = boundary_correlation_coefficient;
-results.convergence_test.boundary.rho_mean = nanmean(boundary_correlation_coefficient);
-results.convergence_test.boundary.rho_predictions = rhos.convergence.boundary.analytic;
-results.convergence_test.interior.stds = interior_std_convergence_list;
-results.convergence_test.interior.rhos = interior_correlation_coefficient;
-results.convergence_test.interior.rho_mean = nanmean(interior_correlation_coefficient);
-results.convergence_test.interior.rho_predictions = rhos.convergence.interior.analytic;
+%results.convergence_test.boundary.stds = boundary_std_convergence_list;
+%results.convergence_test.boundary.rhos = boundary_correlation_coefficient;
+%results.convergence_test.boundary.rho_mean = nanmean(boundary_correlation_coefficient);
+%results.convergence_test.boundary.rho_predictions = rhos.convergence.boundary.analytic;
+%results.convergence_test.interior.stds = interior_std_convergence_list;
+%results.convergence_test.interior.rhos = interior_correlation_coefficient;
+%results.convergence_test.interior.rho_mean = nanmean(interior_correlation_coefficient);
+%results.convergence_test.interior.rho_predictions = rhos.convergence.interior.analytic;
 
 %% Save step-by-step results
 step_by_step_array = NaN(num_epochs,7);
@@ -451,7 +452,7 @@ results.parameters.runtime = runtime;
 save('evolution_test_1_results.mat', 'results');
 
 %% visualize data
-PlotResults('evolution_test_1_results.mat');
+% PlotResults('evolution_test_1_results.mat');
 
 %% function to choose random points from a sphere
 function [x,y,z] = rand_pick_sphere(n,a,b,X,Y,Z)
