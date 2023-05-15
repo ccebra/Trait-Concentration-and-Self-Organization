@@ -18,9 +18,10 @@ f_mode = 3;% Which of the performance functions is to be used
 
 genetic_drift = 1*10^(-3);% Amount that the traits can change with reproduction
 softmax_power = 5;%Exponent we raise each probability to in the softmax function
+softmax_mechanism = 1;%Binary variable, if 1 we use softmax selection mechanism, 0 top-10% mechanism
 num_epochs = 100;% Number of evolutionary steps in each trial
 
-num_experiments = 1000;% Number of total trials
+num_experiments = 2;% Number of total trials
 games_per_competitor = 100;% Number of games each competitor plays to determine fitness
 
 
@@ -289,41 +290,45 @@ parfor experiment = 1:num_experiments
         %end
         
         %% reproduction process (softmax)
-        new_competitor_traits = NaN(num_competitors,num_traits);
-        parent_traits = competitor_traits(reprorows(:,1),:);
-        for i=1:num_competitors
-            drift_vector = genetic_drift*(randn(1,num_traits));
-            child_vector = competitor_traits(reprorows(i,1),:) + drift_vector;
-            %if norm(child_vector) > 1 (code for sphere only)
-            %    child_vector = 1/norm(child_vector)*child_vector;
-            %end
-            if child_vector > 1
-                child_vector = 1;
-            elseif child_vector < 0
-                child_vector = 0;
+        if softmax_mechanism == 1
+            new_competitor_traits = NaN(num_competitors,num_traits);
+            parent_traits = competitor_traits(reprorows(:,1),:);
+            for i=1:num_competitors
+                drift_vector = genetic_drift*(randn(1,num_traits));
+                child_vector = competitor_traits(reprorows(i,1),:) + drift_vector;
+                %if norm(child_vector) > 1 (code for sphere only)
+                %    child_vector = 1/norm(child_vector)*child_vector;
+                %end
+                if child_vector > 1
+                    child_vector = 1;
+                elseif child_vector < 0
+                    child_vector = 0;
+                end
+                new_competitor_traits(i,:) = child_vector;
             end
-            new_competitor_traits(i,:) = child_vector;
+            competitor_traits = new_competitor_traits;
         end
-        competitor_traits = new_competitor_traits;
        
         %% reproduction process (not softmax)
-%         new_competitor_traits = NaN(num_competitors,num_traits);
-%         parent_traits = competitor_traits(highest_fitness(:,1),:);
-%         for i=0:(num_competitors/10-1)
-%             for j=1:10
-%                 drift_vector = genetic_drift*(randn(1,num_traits));
-%                 child_vector = competitor_traits(highest_fitness(i+1,1),:) + drift_vector;
-%                 %if norm(child_vector) > 1 (code for sphere only)
-%                 %    child_vector = 1/norm(child_vector)*child_vector;
-%                 %end
-%                 array_max = max(abs(child_vector));
-%                 if array_max > 1
-%                     child_vector = 1/array_max*child_vector;
-%                 end
-%                 new_competitor_traits(j+(10*i),:) = child_vector;
-%             end
-%         end
-%         competitor_traits = new_competitor_traits; 
+        if softmax_mechanism == 0
+            new_competitor_traits = NaN(num_competitors,num_traits);
+            parent_traits = competitor_traits(highest_fitness(:,1),:);
+            for i=0:(num_competitors/10-1)
+                for j=1:10
+                    drift_vector = genetic_drift*(randn(1,num_traits));
+                    child_vector = competitor_traits(highest_fitness(i+1,1),:) + drift_vector;
+                    %if norm(child_vector) > 1 (code for sphere only)
+                    %    child_vector = 1/norm(child_vector)*child_vector;
+                    %end
+                    array_max = max(abs(child_vector));
+                    if array_max > 1
+                        child_vector = 1/array_max*child_vector;
+                    end
+                    new_competitor_traits(j+(10*i),:) = child_vector;
+                end
+            end
+            competitor_traits = new_competitor_traits;
+        end
         
         
         %% add to arrays
